@@ -1,0 +1,16 @@
+PODS:
+  - CCDB-OBJC (1.0.0)
+
+DEPENDENCIES:
+  - CCDB-OBJC (from `/Users/cmw/projects/CCDB-Objc/Core`)
+
+EXTERNAL SOURCES:
+  CCDB-OBJC:
+    :path: "/Users/cmw/projects/CCDB-Objc/Core"
+
+SPEC CHECKSUMS:
+  CCDB-OBJC: 5f04bc6054eca5c8402f71e41191ae6b04f14644
+
+PODFILE CHECKSUM: 217a25ab63ffc9e0261e58f3b1e349fbd8ee71fe
+
+COCOAPODS: 1.11.2
