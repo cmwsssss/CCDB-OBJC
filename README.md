@@ -223,4 +223,84 @@ CC_PROPERTY_TYPE_JSON((nonatomic, strong), UserModel *, user, CCModelPropertyTyp
 @end
 ```
 
+### 5.更新和插入
+对于CCDB来说，操作都是基于CCModelSavingable对象的，**对象必须具有主键**，因此更新和插入都是下面这句代码，如果数据内没有该主键对应数据，则会插入，否则则会更新。
+**CCDB不提供批量写入接口，CCDB会自动建立写入事务并优化**
+```
+[userModel replaceIntoDB];
+```
+
+### 6.查询
+CCDB提供了针对单独对象的主键查询，批量查询和条件查询的接口
+
+##### 主键查询
+通过主键获取对应的模型对象
+```
+UserModel user = [[UserModel alloc] initWithPrimaryProperty:@"userId"];
+```
+#### 批量查询
+* 获取该模型表的长度
+```
+NSInteger count = [UserModel count];
+```
+* 获取该模型表下所有对象
+```
+NSArray *users = [UserModel loadAllDataWithAsc:false];    //倒序 
+```
+
+##### 条件查询
+CCDB的条件配置是通过CCModelCondition的对象来完成的
+比如查询UserModel表内前30个Age大于20的用户，结果按照倒Age的倒序返回
+```
+CCModelCondition *condition = [[CCModelCondition alloc] init];
+//cc相关方法没有顺序先后之分
+condition.ccWhere(@"Age > 30").ccOrderBy("Age").ccLimited(20).ccOffset(0).ccIsAsc(false);
+//根据条件查询对应用户
+NSArray *res = [UserModel loadDataWithCondition:condition];
+//根据条件获取对应的用户数量
+NSInteger count = [UserModel countBy:condition];
+```
+
+### 7.字典映射到模型
+CCDB可以根据属性声明时的配置自动将字典映射到模型，调用如下方法即可
+```
+UserModel *user = [[UserModel alloc] initWithJSONDictionary:dic];
+```
+
+### 8. 删除
+* 删除单个对象
+```
+[userModel removeFromDB];
+```
+* 删除所有对象
+```
+[UserModel removeAll];
+```
+
+#### 9. 索引
+* 建立索引
+```
+//给Age属性建立索引
+[UserModel createIndexForProperty:@"Age"];
+```
+* 删除索引
+```
+//删除Age属性索引
+[UserModel removeIndexForProperty:@"Age"];
+```
+
+#### 10. Container
+Container是一种列表数据的解决方案，可以将各个列表的值写入到Container内，Container表内数据不是单独的拷贝，其与数据表的数据相关联
+
+```
+let glc = Car()
+glc.name = "GLC 300"
+glc.brand = "Benz"
+// 假设Benz车的containerId为1，这里会将glc写入benz车的列表容器内
+glc.replaceIntoDB(containerId: 1, top: false)
+
+//获取所有属于Benz车的列表数据
+let allBenzCar = Car.queryAll(false, withContainerId: 1)
+```
+Container的数据存取在CCDB内部同样有过专门优化，可以不用考虑性能问题
 
