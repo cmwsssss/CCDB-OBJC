@@ -145,7 +145,7 @@ CC_PROPERTY_TYPE((nonatomic, strong), NSArray *, comment, CCModelPropertyTypeJSO
 @end
 ```
 
-###### ###### 3. CCModelPropertyTypeCustom
+###### 3. CCModelPropertyTypeCustom
 如果属性是一个自定义属性，比如自己声明的一个类型并且没有遵循CCDBSaving协议，则需要使用CCModelPropertyTypeCustom来进行属性声明，并在当前类下实现编码和反编码方法
 ```
 @interface MomentModel : CCModel
@@ -222,3 +222,5 @@ CC_PROPERTY_TYPE_JSON((nonatomic, strong), UserModel *, user, CCModelPropertyTyp
 
 @end
 ```
+
+
