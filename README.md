@@ -123,7 +123,7 @@ typedef NS_ENUM(NSUInteger, CCModelPropertyType) {
 };
 ```
 
-1. CCModelPropertyTypeModel
+###### 1. CCModelPropertyTypeModel
 如果属性类型为CCModel的子类，则需要用该类型声明属性，CCDB在写入时，会一并对子属性进行写入操作，查询时亦然
 ```
 @interface MessageModel : CCModel
@@ -134,7 +134,7 @@ CC_PROPERTY_TYPE((nonatomic, strong), UserModel *, user, CCModelPropertyTypeMode
 @end
 ```
 
-2. CCModelPropertyTypeJSON
+###### 2. CCModelPropertyTypeJSON
 如果属性类型为可序列化的NSArray和NSDictionary，则CCDB会自动将其序列化为自动字符串并进行写入，并在读取时自动映射为NSArray和NSDictionary数据，**CCDB暂时不支持对字典内部key进行查询操作**
 ```
 @interface MomentModel : CCModel
@@ -145,7 +145,7 @@ CC_PROPERTY_TYPE((nonatomic, strong), NSArray *, comment, CCModelPropertyTypeJSO
 @end
 ```
 
-3. CCModelPropertyTypeCustom
+###### ###### 3. CCModelPropertyTypeCustom
 如果属性是一个自定义属性，比如自己声明的一个类型并且没有遵循CCDBSaving协议，则需要使用CCModelPropertyTypeCustom来进行属性声明，并在当前类下实现编码和反编码方法
 ```
 @interface MomentModel : CCModel
@@ -175,7 +175,7 @@ CC_PROPERTY_TYPE((nonatomic, strong), MyModel *, myModel, CCModelPropertyTypeCus
  
 ```
 
-4. CCModelPropertyTypeSavingProtocol
+###### 4. CCModelPropertyTypeSavingProtocol
 对于遵循了CCDBSaving协议的类，则需要使用CCModelPropertyTypeSavingProtocol来声明属性
 **遵循CCDBSaving的类不需要主键，其属性的声明方式和CCModel一致，其对象无法单独写入数据库，必须作为CCModel的属性存在**
 
