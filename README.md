@@ -108,12 +108,16 @@ CCDB的属性类型的枚举如下
 typedef NS_ENUM(NSUInteger, CCModelPropertyType) {
     //默认类型
     CCModelPropertyTypeDefault = 1,
+    
     //被声明的属性为CCModel的子类
     CCModelPropertyTypeModel,
+    
     //被声明的属性为可序列化的字典或数组
     CCModelPropertyTypeJSON,
+    
     //被声明的属性为自定义的类型
     CCModelPropertyTypeCustom,
+    
     //被声明的属性遵循CCDBSaving协议
     CCModelPropertyTypeSavingProtocol,
 };
