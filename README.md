@@ -223,14 +223,26 @@ CC_PROPERTY_TYPE_JSON((nonatomic, strong), UserModel *, user, CCModelPropertyTyp
 @end
 ```
 
-### 5.更新和插入
+### 声明主键
+CCDB需要每张数据表必须要有一个主键，需要在.m文件声明主键
+
+```
+@implementation UserModel
+
+//userId为主键的属性名
+CC_MODEL_PRIMARY_PROPERTY(userId)
+
+@end
+```
+
+### 更新和插入
 对于CCDB来说，操作都是基于CCModelSavingable对象的，**对象必须具有主键**，因此更新和插入都是下面这句代码，如果数据内没有该主键对应数据，则会插入，否则则会更新。
 **CCDB不提供批量写入接口，CCDB会自动建立写入事务并优化**
 ```
 [userModel replaceIntoDB];
 ```
 
-### 6.查询
+### 查询
 CCDB提供了针对单独对象的主键查询，批量查询和条件查询的接口
 
 ##### 主键查询
@@ -261,13 +273,13 @@ NSArray *res = [UserModel loadDataWithCondition:condition];
 NSInteger count = [UserModel countBy:condition];
 ```
 
-### 7.字典映射到模型
+### 字典映射到模型
 CCDB可以根据属性声明时的配置自动将字典映射到模型，调用如下方法即可
 ```
 UserModel *user = [[UserModel alloc] initWithJSONDictionary:dic];
 ```
 
-### 8. 删除
+### 删除
 * 删除单个对象
 ```
 [userModel removeFromDB];
@@ -277,7 +289,7 @@ UserModel *user = [[UserModel alloc] initWithJSONDictionary:dic];
 [UserModel removeAll];
 ```
 
-#### 9. 索引
+#### 索引
 * 建立索引
 ```
 //给Age属性建立索引
@@ -289,7 +301,7 @@ UserModel *user = [[UserModel alloc] initWithJSONDictionary:dic];
 [UserModel removeIndexForProperty:@"Age"];
 ```
 
-#### 10. Container
+#### Container
 Container是一种列表数据的解决方案，可以将各个列表的值写入到Container内，Container表内数据不是单独的拷贝，其与数据表的数据相关联
 
 ```
