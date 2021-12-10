@@ -293,14 +293,16 @@ UserModel *user = [[UserModel alloc] initWithJSONDictionary:dic];
 Container是一种列表数据的解决方案，可以将各个列表的值写入到Container内，Container表内数据不是单独的拷贝，其与数据表的数据相关联
 
 ```
-let glc = Car()
-glc.name = "GLC 300"
-glc.brand = "Benz"
+Car *glc = [[Car alloc] init];
+glc.name = @"GLC 300"
+glc.brand = @"Benz"
 // 假设Benz车的containerId为1，这里会将glc写入benz车的列表容器内
-glc.replaceIntoDB(containerId: 1, top: false)
+[glc replaceIntoDBWithContainerId:1 top:false];
+//将glc从奔驰车列表里面删除
+[glc removeFromContainer:1];
 
 //获取所有属于Benz车的列表数据
-let allBenzCar = Car.queryAll(false, withContainerId: 1)
+NSArray *benzCars = [Car loadAllDataWithAsc:false containerId:1];
 ```
 Container的数据存取在CCDB内部同样有过专门优化，可以不用考虑性能问题
 
