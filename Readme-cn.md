@@ -196,7 +196,7 @@ let res = UserModel.query(condition)
 let count = UserModel.count(condition)
 ```
 
-#### 8. Delete
+#### Delete
 * Delete a object
 ```
 userModel.removeFromDB()
@@ -206,7 +206,7 @@ userModel.removeFromDB()
 UserModel.removeAll()
 ```
 
-#### 9. Index
+#### Index
 * Create index
 ```
 //Create index for age
@@ -218,7 +218,7 @@ UserModel.createIndex("age")
 UserModel.removeIndex("age")
 ```
 
-#### 10. Container
+#### Container
 Container is a solution for list data, the value of each list can be written to Container, Container's table data is not a separate copy, its associated with the data table data
 
 ```
