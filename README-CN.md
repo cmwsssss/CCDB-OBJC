@@ -1,4 +1,3 @@
-# CCDB-OBJC
 # CCDB-OBJC是什么
 CCDB-OBJC是基于Sqlite3和OBJC编写的高性能数据库框架，致力于能够让使用者在应用层面进行最简单，最快速的数据处理操作。
 
