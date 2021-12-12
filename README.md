@@ -185,6 +185,7 @@ CC_PROPERTY_TYPE((nonatomic, strong), MyModel *, myModel, CCModelPropertyTypeCus
 
 ###### 4. CCModelPropertyTypeSavingProtocol
 For classes that follow the CCDBSaving protocol, you need to use the CCModelPropertyTypeSavingProtocol to declare properties
+
 **Classes that follow CCDBSaving do not need a primary key, their properties are declared in the same way as CCModel, their objects cannot be written to the database alone, they must exist as properties of CCModel**
 
 ```
