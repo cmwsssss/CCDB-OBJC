@@ -48,7 +48,7 @@ pod 'CCDB-OBJC'
 @end
 ```
 #### 属性声明：
-CCDB支持的类型有：Int，String，Double，Float，Bool以及实现了CCDBSaving协议的类
+CCDB默认支持的类型有：int，double，float，bool, NSString.
 
 CCDB提供了4种属性声明的方式，CCDB只会将通过声明宏声明的属性映射入库
 
