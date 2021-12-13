@@ -3,7 +3,7 @@
 # CCDB-OBJC
 CCDB-OBJC is a high-performance database framework based on Sqlite3 and OBJC written to enable users to perform the simplest and fastest data processing operations at the application level.
 
-CCDB has a Swift version, CCDB Swift version due to the relative complexity of the ORM, the speed will be worse than the OC version, but the Swift version of CCDB adapted SwiftUI, using SwiftUI or use pure Swift developers please [click here to view](https://github.com/cmwsssss/CCDB)
+CCDB has a Swift version, the Swift version of CCDB adapted SwiftUI, using SwiftUI or use pure Swift developers please [click here to view](https://github.com/cmwsssss/CCDB)
 
 ## Features
 
