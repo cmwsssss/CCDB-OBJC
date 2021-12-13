@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		DB2A21B627672440005F239E /* SpeedTestModel.m in Sources */ = {isa = PBXBuildFile; fileRef = DB2A21B527672440005F239E /* SpeedTestModel.m */; };
 		DBB640DE275F536700442F68 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = DBB640DD275F536700442F68 /* AppDelegate.m */; };
 		DBB640E1275F536700442F68 /* SceneDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = DBB640E0275F536700442F68 /* SceneDelegate.m */; };
 		DBB640E4275F536700442F68 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = DBB640E3275F536700442F68 /* ViewController.m */; };
@@ -50,6 +51,8 @@
 		201D2306727986AEF0CCD537 /* Pods-CCDBExample.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CCDBExample.debug.xcconfig"; path = "Target Support Files/Pods-CCDBExample/Pods-CCDBExample.debug.xcconfig"; sourceTree = "<group>"; };
 		27EDB12C5BACA3F9032AB6A1 /* Pods-CCDBExample.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CCDBExample.release.xcconfig"; path = "Target Support Files/Pods-CCDBExample/Pods-CCDBExample.release.xcconfig"; sourceTree = "<group>"; };
 		9B38D14D153DB85DD486C799 /* Pods_CCDBExample.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_CCDBExample.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		DB2A21B427672440005F239E /* SpeedTestModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SpeedTestModel.h; sourceTree = "<group>"; };
+		DB2A21B527672440005F239E /* SpeedTestModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SpeedTestModel.m; sourceTree = "<group>"; };
 		DBB640D9275F536700442F68 /* CCDBExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CCDBExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBB640DC275F536700442F68 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		DBB640DD275F536700442F68 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
@@ -193,6 +196,8 @@
 				DBB64116275F568800442F68 /* UserModel.m */,
 				DBB64118275F577000442F68 /* UserInfoObject.h */,
 				DBB64119275F577000442F68 /* UserInfoObject.m */,
+				DB2A21B427672440005F239E /* SpeedTestModel.h */,
+				DB2A21B527672440005F239E /* SpeedTestModel.m */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -424,6 +429,7 @@
 				DBB640E4275F536700442F68 /* ViewController.m in Sources */,
 				DBB6411A275F577000442F68 /* UserInfoObject.m in Sources */,
 				DBB640DE275F536700442F68 /* AppDelegate.m in Sources */,
+				DB2A21B627672440005F239E /* SpeedTestModel.m in Sources */,
 				DBB6412227602E6800442F68 /* UserListView.m in Sources */,
 				DBB64117275F568800442F68 /* UserModel.m in Sources */,
 				DBB6413127605BF800442F68 /* UserDetailView.m in Sources */,

@@ -8,6 +8,7 @@
 #import "ViewController.h"
 #import "UserListViewController.h"
 #import "UserModel.h"
+#import "SpeedTestModel.h"
 @interface CellDataSource : NSObject
 
 @property (nonatomic, strong) NSString *title;
@@ -52,13 +53,16 @@
             [[CellDataSource alloc] initWithTitle:@"Users all" clickHandler:^{
                 [weakSelf onShowUserListViewController:UserListTypeAll];
             }],
-            [[CellDataSource alloc] initWithTitle:@"100000次写入" clickHandler:^{
+            [[CellDataSource alloc] initWithTitle:@"Insert 10000 data" clickHandler:^{
                 [weakSelf onWriteTest];
             }],
-            [[CellDataSource alloc] initWithTitle:@"读取所有数据" clickHandler:^{
+            [[CellDataSource alloc] initWithTitle:@"Insert 100000 data" clickHandler:^{
+                [weakSelf onWriteTest100000];
+            }],
+            [[CellDataSource alloc] initWithTitle:@"Quert all data" clickHandler:^{
                 [weakSelf onLoadAllTest];
             }],
-            [[CellDataSource alloc] initWithTitle:@"主键读取所有数据" clickHandler:^{
+            [[CellDataSource alloc] initWithTitle:@"Get 10000 data" clickHandler:^{
                 [weakSelf onLoadPrimaryPropertyTest];
             }]
             
@@ -73,12 +77,21 @@
     [self presentViewController:alertController animated:YES completion:nil];
 }
 
-- (void)onWriteTest {
+- (void)onWriteTest100000 {
     NSDate *date = [NSDate date];
     for (int i = 0; i < 100000; i++) {
-        UserModel *model = [[UserModel alloc] init];
-        model.userId = i+100000;
-        model.username = [NSString stringWithFormat:@"username-%ld", i];
+        SpeedTestModel *model = [[SpeedTestModel alloc] init];
+        model.compareId = i;
+        [model replaceIntoDB];
+    }
+    [self showTimeAlert:-[date timeIntervalSinceNow]];
+}
+
+- (void)onWriteTest {
+    NSDate *date = [NSDate date];
+    for (int i = 0; i < 10000; i++) {
+        SpeedTestModel *model = [[SpeedTestModel alloc] init];
+        model.compareId = i;
         [model replaceIntoDB];
     }
     [self showTimeAlert:-[date timeIntervalSinceNow]];
@@ -86,15 +99,16 @@
 
 - (void)onLoadAllTest {
     NSDate *date = [NSDate date];
-    [UserModel loadAllDataWithAsc:NO];
+    [SpeedTestModel loadAllDataWithAsc:NO];
     [self showTimeAlert:-[date timeIntervalSinceNow]];
 }
 
 - (void)onLoadPrimaryPropertyTest {
     NSDate *date = [NSDate date];
-    for (int i = 100; i < 100100; i++) {
-        UserModel *model = [[UserModel alloc] initWithPrimaryProperty:@(i)];
+    for (int i = 0; i < 10000; i++) {
+        SpeedTestModel *model = [[SpeedTestModel alloc] initWithPrimaryProperty:@(i)];
     }
+    
     [self showTimeAlert:-[date timeIntervalSinceNow]];
 }
 
