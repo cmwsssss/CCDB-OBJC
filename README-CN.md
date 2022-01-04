@@ -34,7 +34,7 @@ pod 'CCDB-OBJC'
 ```
 [CCDB initializeDBWithVersion:@"1.0"];
 ```
-如果数据模型属性有变化，需要升级数据库时，更改verson即可
+如果数据模型属性有变化，需要升级数据库时，更改version即可
 
 ### 4.接入
 
