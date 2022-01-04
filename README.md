@@ -36,7 +36,7 @@ Call the initialization method before using the CCDB's API
 ```
 [CCDB initializeDBWithVersion:@"1.0"];
 ```
-If the data model properties have changed and you need to migrate the database, just change the verson
+If the data model properties have changed and you need to migrate the database, just change the version
 
 ### Object Relational Mapping(ORM)
 
