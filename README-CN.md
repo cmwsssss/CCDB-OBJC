@@ -1,5 +1,5 @@
 # CCDB-OBJC是什么
-CCDB-OBJC是基于Sqlite3和OBJC编写的高性能数据库框架，致力于能够让使用者在应用层面进行最简单，最快速的数据处理操作。
+CCDB-OBJC是基于Sqlite3, MMAP和OBJC编写的高性能数据库框架，致力于能够让使用者在应用层面进行最简单，最快速的数据处理操作。
 
 CCDB拥有一个Swift版本，CCDB的Swift版本适配了SwiftUI，使用SwiftUI或者使用纯Swift的开发者请[点此查看](https://github.com/cmwsssss/CCDB)
 
