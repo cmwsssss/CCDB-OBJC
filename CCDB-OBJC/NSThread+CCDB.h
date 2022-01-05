@@ -25,7 +25,7 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  Only the index of sqlite3 instance is stored in the thread, not the specific sqlite3 instance
  */
-- (void)setDbInstanceWithIndex:(NSInteger)index;
+@property (nonatomic, assign) NSInteger cc_dbIndex;
 
 @end
 

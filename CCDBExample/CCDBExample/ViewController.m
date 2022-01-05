@@ -59,7 +59,7 @@
             [[CellDataSource alloc] initWithTitle:@"Insert 100000 data" clickHandler:^{
                 [weakSelf onWriteTest100000];
             }],
-            [[CellDataSource alloc] initWithTitle:@"Quert all data" clickHandler:^{
+            [[CellDataSource alloc] initWithTitle:@"Query all data" clickHandler:^{
                 [weakSelf onLoadAllTest];
             }],
             [[CellDataSource alloc] initWithTitle:@"Get 10000 data" clickHandler:^{

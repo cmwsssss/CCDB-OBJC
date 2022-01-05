@@ -113,7 +113,7 @@
 + (NSString *)getCreateContainerIndexTableString:(Class)class {
     NSString *className = NSStringFromClass(class);
     NSString *primaryKeyType = [self getSqlType:[class cc_dataTypeBitmap].UTF8String[0]];
-    NSString *sql = [NSString stringWithFormat:@"CREATE TABLE IF NOT EXISTS %@_index (id TEXT, hash_id INTEGER, primarykey %@, update_time INTEGER, PRIMARY KEY(id));", className, primaryKeyType];
+    NSString *sql = [NSString stringWithFormat:@"CREATE TABLE IF NOT EXISTS %@_index (id TEXT, hash_id INTEGER, primary_key %@, update_time INTEGER, PRIMARY KEY(id));", className, primaryKeyType];
     return sql;
 }
 

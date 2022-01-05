@@ -18,6 +18,9 @@
 #import "CCDBUpdateManager.h"
 #import "NSThread+CCDB.h"
 #import "CCDBInstancePool.h"
+#import "CCDBMMAPCache.h"
+#import "NSObject+CCDBSavingProtocolImp.h"
+#import "CCDBSavingProtocol.h"
 @implementation CCDBPropertyTag
 
 @end
@@ -109,21 +112,27 @@
     for(int i = 0; i < arrayDBPropertyList.count; i++) {
         NSString *propertyName = [arrayDBPropertyList objectAtIndex:i];
         CCModelPropertyDataType dataType = (int)dataTypeBitmap[i];
+        id value = nil;
         switch (dataType) {
             case CCModelPropertyDataTypeInt:
-                [model setValue:[NSNumber numberWithInt:[stmt getInt32:i]] forKey:propertyName];
+                value = @([stmt getInt32:i]);
+                [model setValue:value forKey:propertyName];
                 break;
             case CCModelPropertyDataTypeFloat:
-                [model setValue:[NSNumber numberWithFloat:[stmt getFloat:i]] forKey:propertyName];
+                value = @([stmt getFloat:i]);
+                [model setValue:value forKey:propertyName];
                 break;
             case CCModelPropertyDataTypeBool:
-                [model setValue:[NSNumber numberWithBool:[stmt getInt32:i]] forKey:propertyName];
+                value = @([stmt getInt32:i]);
+                [model setValue:value forKey:propertyName];
                 break;
             case CCModelPropertyDataTypeLong:
-                [model setValue:[NSNumber numberWithLong:[stmt getInt64:i]] forKey:propertyName];
+                value = @([stmt getInt64:i]);
+                [model setValue:value forKey:propertyName];
                 break;
             case CCModelPropertyDataTypeString: {
-                [model setValue:[stmt getString:i] forKey:propertyName];
+                value = [stmt getString:i];
+                [model setValue:value forKey:propertyName];
             }
                 break;
             case CCModelPropertyDataTypeRaw: {
@@ -132,13 +141,12 @@
             default:
                 break;
         }
-        if (i == 0) {
-            id primaryKey = [model valueForKey:primaryPropertyName];
-            id memoryObj = [[CCModelCacheManager sharedInstance] modelWithPrimaryKey:primaryKey className:className];
+        if (i == 0 && value) {
+            id memoryObj = [[CCModelCacheManager sharedInstance] modelWithPrimaryKey:value className:className];
             if (memoryObj) {
                 return memoryObj;
             } else {
-                [[CCModelCacheManager sharedInstance] addModelToCache:model primaryKey:primaryKey className:className];
+                [[CCModelCacheManager sharedInstance] addModelToCache:model primaryKey:value className:className];
             }
         }
     }
@@ -180,6 +188,7 @@
     if (model) {
         return model;
     }
+    [[CCDBUpdateManager sharedInstance] waitInit];
     CCPropertyMapper *propertyMapper = [[CCModelMapperManager sharedInstance].dicPropertyMapper objectForKey:className];
     NSString *sql = @"SELECT ";
     NSArray *arrayPropertyList = propertyMapper.arrayDBPropertyName;
@@ -222,6 +231,7 @@
 }
 
 + (NSMutableArray *)prepareForSyncDBLoad:(NSString *)className headerPartSql:(NSString *)headerPartSql condition:(CCModelCondition *)condition {
+    [[CCDBUpdateManager sharedInstance] waitInit];
     NSInteger count = 0;
     __block NSInteger offset = 0;
     if (condition.limited > 0) {
@@ -242,6 +252,7 @@
     dispatch_queue_t queryQueue = dispatch_queue_create("_queryQueue", DISPATCH_QUEUE_CONCURRENT);
     for (int i = 0; i < DB_INSTANCE_POOL_SIZE; i++) {
         dispatch_async(queryQueue, ^{
+            NSDate *date = [NSDate date];
             NSString *sql = [headerPartSql copy];
             CCModelCondition *subCondition = [condition copy];
             dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
@@ -259,11 +270,12 @@
             CCDBExecuteModel *resModel = [[CCDBExecuteModel alloc] init];
             resModel.className = className;
             resModel.sql = sql;
-            [self performSelector:@selector(loadDatasWithExecuteModel:) onThread:[CCDBInstancePool getDBTransactionThread] withObject:resModel waitUntilDone:YES];
+            NSThread *thread = [CCDBInstancePool getDBTransactionThread];
+            [self performSelector:@selector(loadDatasWithExecuteModel:) onThread:thread withObject:resModel waitUntilDone:YES];
             dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
             [dicIndex setObject:resModel forKey:@(subCondition.offset)];
             dispatch_semaphore_signal(semaphore);
-            
+            NSLog(@"%f", [date timeIntervalSinceNow]);
         });
         
     }
@@ -306,7 +318,7 @@
     NSString *primaryKey = propertyMapper.primaryKey;
     
     CCModelCondition *condition = [[CCModelCondition alloc] init];
-    condition.ccWhere([NSString stringWithFormat:@"%@.%@ = i.primarykey and i.hash_id = %ld", className, primaryKey, containerId])
+    condition.ccWhere([NSString stringWithFormat:@"%@.%@ = i.primary_key and i.hash_id = %ld", className, primaryKey, containerId])
     .ccContainerId(containerId)
     .ccOrderBy(@"i.update_time")
     .ccIsAsc(isAsc);
@@ -324,42 +336,120 @@
     NSString *primaryKey = propertyMapper.primaryKey;
     if (condition.containerId != NOContainerId) {
         NSString *where = condition.where;
-        condition.ccWhere([NSString stringWithFormat:@"%@ and i.hash_id = %ld and %@.%@ = i.primarykey", where, condition.containerId, className, primaryKey]);
+        condition.ccWhere([NSString stringWithFormat:@"%@ and i.hash_id = %ld and %@.%@ = i.primary_key", where, condition.containerId, className, primaryKey]);
     }
     NSMutableArray *datas = [self prepareForSyncDBLoad:className headerPartSql:sql condition:condition];
     return datas;
 }
 
+- (void)insertIntoMMAPCache:(id)value type:(CCModelPropertyDataType)type mmapIndex:(NSInteger)mmapIndex propertyName:(NSString *)propertyName {
+    if (!value) {
+        ccdb_insertMMAPCacheWithNull(propertyName, mmapIndex);
+        return;
+    }
+    switch (type) {
+        case CCModelPropertyDataTypeInt:
+            ccdb_insertMMAPCacheWithInt([value integerValue], propertyName, mmapIndex);
+            break;
+        case CCModelPropertyDataTypeFloat:
+            ccdb_insertMMAPCacheWithDouble([value doubleValue], propertyName, mmapIndex);
+            break;
+        case CCModelPropertyDataTypeLong:
+            ccdb_insertMMAPCacheWithInt([value integerValue], propertyName, mmapIndex);
+            break;
+        case CCModelPropertyDataTypeBool:
+            ccdb_insertMMAPCacheWithBool([value boolValue], propertyName, mmapIndex);
+            break;
+        default:
+            ccdb_insertMMAPCacheWithString(value, propertyName, mmapIndex);
+            break;
+    }
+}
+
 - (void)replaceIntoDB {
     NSString *className = NSStringFromClass([self class]);
     CCPropertyMapper *propertyMapper = [[CCModelMapperManager sharedInstance].dicPropertyMapper objectForKey:className];
-    NSString *primaryKey = propertyMapper.primaryKey;
-    id value = [self valueForKey:primaryKey];
-    if (value) {
-        if ([value isKindOfClass:[NSString class]]) {
-            if ([value length] == 0) {
-                return;
+    
+    NSArray *arrayDBPropertyList = propertyMapper.arrayDBPropertyName;
+    
+    ccdb_beginMMAPCacheTransaction(propertyMapper.mmapIndex, CCDBMMAPTransactionTypeUpdate);
+    
+    NSMutableDictionary *customDic = [self customJSONDictionary];
+    int j = 0;
+    const char *dataTypeBitmap = self.cc_dataTypeBitmap.UTF8String;
+    const char *propertyTypeBitmap = self.cc_propertyTypeBitmap.UTF8String;
+    for(int i = 0; i < arrayDBPropertyList.count; i++) {
+        NSString *name = [arrayDBPropertyList objectAtIndex:i];
+        j++;
+        if ((int)propertyTypeBitmap[i] != CCModelPropertyTypeDefault) {
+            if (![self valueForKey:name]) {
+                [self extractDataWithProperty:name type:(int)propertyTypeBitmap[i]];
             }
+            switch ((int)propertyTypeBitmap[i]) {
+                case CCModelPropertyTypeJSON:
+                    ccdb_insertMMAPCacheWithString([[self valueForKey:name] JSONString], name, propertyMapper.mmapIndex);
+                    break;
+                case CCModelPropertyTypeSavingProtocol: {
+                    id object = [self valueForKey:name];
+                    if ([object respondsToSelector:@selector(cc_JSONDictionary)]) {
+                        ccdb_insertMMAPCacheWithString([[object cc_JSONDictionary] JSONString], name, propertyMapper.mmapIndex);
+                    } else {
+                        ccdb_insertMMAPCacheWithString([[object defaultJSONDictionaryIMP] JSONString], name, propertyMapper.mmapIndex);
+                    }
+                }
+                    break;
+                case CCModelPropertyTypeCustom: {
+                    id object = [customDic objectForKey:name];
+                    if (object) {
+                        ccdb_insertMMAPCacheWithString([object JSONString], name, propertyMapper.mmapIndex);
+                    }
+                }
+                    break;
+                case CCModelPropertyTypeModel: {
+                    CCModel *model = [self valueForKey:name];
+                    if (model) {
+                        CCPropertyMapper *subModelMapper = [[CCModelMapperManager sharedInstance].dicPropertyMapper objectForKey:NSStringFromClass([model class])];
+                        NSString *primaryKey = subModelMapper.primaryKey;
+                        id data = [model valueForKey: primaryKey];
+                        const char *subDataTypeBitmap = self.cc_dataTypeBitmap.UTF8String;
+                        [self insertIntoMMAPCache:data type:subDataTypeBitmap[0] mmapIndex:propertyMapper.mmapIndex propertyName:name];
+                    }
+                }
+                    break;
+                default:
+                    break;
+            }
+        } else {
+            [self insertIntoMMAPCache:[self valueForKey:name] type:dataTypeBitmap[i] mmapIndex:propertyMapper.mmapIndex propertyName:name];
         }
-    } else {
-        return;
     }
-    [[CCModelCacheManager sharedInstance] addModelToCache:self primaryKey:[self valueForKey:primaryKey] className:className];
-    [[CCDBUpdateManager sharedInstance] addObject:self];
+    
+    ccdb_commitMMAPCacheTransaction(propertyMapper.mmapIndex);
+    
+    [[CCModelCacheManager sharedInstance] addModelToCache:self primaryKey:[self valueForKey:propertyMapper.primaryKey] className:className];
 }
 
 - (void)replaceIntoDBWithContainerId:(NSInteger)containerId top:(BOOL)top {
     if(containerId != NOContainerId) {
         NSString *className = NSStringFromClass([self class]);
         [[CCModelCacheManager sharedInstance] addModelToContainerCache:self className:className containerId:containerId top:top];
-        CCDBUpdateModel *model = [[CCDBUpdateModel alloc] init];
-        model.containerId = containerId;
-        model.top = top;
-        model.object = self;
-        [[CCDBUpdateManager sharedInstance] addObject:model];
     }
     
     [self replaceIntoDB];
+    
+    NSString *className = NSStringFromClass([self class]);
+    CCPropertyMapper *propertyMapper = [[CCModelMapperManager sharedInstance].dicPropertyMapper objectForKey:className];
+    id primaryValue = [self valueForKey:propertyMapper.primaryKey];
+    ccdb_beginMMAPCacheTransaction(propertyMapper.mmapIndex, CCDBMMAPTransactionTypeContainerUpdate);
+    ccdb_insertMMAPCacheWithString([NSString stringWithFormat:@"%ld-%@",containerId, primaryValue], @"id", propertyMapper.mmapIndex);
+    ccdb_insertMMAPCacheWithInt(containerId, @"hash_id", propertyMapper.mmapIndex);
+    [self insertIntoMMAPCache:primaryValue type:(int)(self.cc_dataTypeBitmap.UTF8String[0]) mmapIndex:propertyMapper.mmapIndex propertyName:@"primary_key"];
+    if (top) {
+        ccdb_insertMMAPCacheWithDouble(-[NSDate date].timeIntervalSince1970, @"update_time", propertyMapper.mmapIndex);
+    } else {
+        ccdb_insertMMAPCacheWithDouble([NSDate date].timeIntervalSince1970, @"update_time", propertyMapper.mmapIndex);
+    }
+    ccdb_commitMMAPCacheTransaction(propertyMapper.mmapIndex);
 }
 
 - (void)executeWithSql:(NSString *)sql {
@@ -395,71 +485,52 @@
 - (void)removeFromDB {
     NSString *className = NSStringFromClass([self class]);
     CCPropertyMapper *propertyMapper = [[CCModelMapperManager sharedInstance].dicPropertyMapper objectForKey:className];
-    NSString *dbPrimaryPropertyName = propertyMapper.primaryKey;
+    NSString *primaryKey = propertyMapper.primaryKey;
+    id primaryValue = [self valueForKey:primaryKey];
+    CCModelPropertyDataType type = (int)self.cc_dataTypeBitmap.UTF8String[0];
     
-    NSString *sql = [NSString stringWithFormat:@"DELETE FROM %@ WHERE %@ = ? ",className, dbPrimaryPropertyName];
-    CCDBExecuteModel *executeModel = [[CCDBExecuteModel alloc] init];
-    executeModel.sql = sql;
-    executeModel.containerId = NOContainerId;
-    executeModel.primaryKey = [self valueForKey:dbPrimaryPropertyName];
-    executeModel.primaryKeyType = (int)self.cc_dataTypeBitmap.UTF8String[0];
-    [self performSelector:@selector(removeFromDBWithExecuteModel:) onThread:[CCDBInstancePool getDBTransactionThread] withObject:executeModel waitUntilDone:YES];
+    ccdb_beginMMAPCacheTransaction(propertyMapper.mmapIndex, CCDBMMAPTransactionTypeDelete);
+    [self insertIntoMMAPCache:primaryValue type:type mmapIndex:propertyMapper.mmapIndex propertyName:primaryKey];
+    ccdb_commitMMAPCacheTransaction(propertyMapper.mmapIndex);
+    
+    ccdb_beginMMAPCacheTransaction(propertyMapper.mmapIndex, CCDBMMAPTransactionTypeDeleteObjectFromContainer);
+    [self insertIntoMMAPCache:primaryValue type:type mmapIndex:propertyMapper.mmapIndex propertyName:@"primary_key"];
+    ccdb_commitMMAPCacheTransaction(propertyMapper.mmapIndex);
 }
 
 - (void)removeFromContainer:(long)containerId {
     NSString *className = NSStringFromClass([self class]);
     NSString *containerTableName = [NSString stringWithFormat:@"%@_index",className];
     CCPropertyMapper *propertyMapper = [[CCModelMapperManager sharedInstance].dicPropertyMapper objectForKey:className];
-    NSString *dbPrimaryPropertyName = propertyMapper.primaryKey;
+    NSString *primaryKey = propertyMapper.primaryKey;
+    id primaryValue = [self valueForKey:primaryKey];
+    CCModelPropertyDataType type = (int)self.cc_dataTypeBitmap.UTF8String[0];
     
-    NSString *sql = [NSString stringWithFormat:@"DELETE FROM %@ WHERE hash_id = ? AND primarykey = ?",containerTableName];
-    CCDBExecuteModel *executeModel = [[CCDBExecuteModel alloc] init];
-    executeModel.sql = sql;
-    executeModel.containerId = containerId;
-    executeModel.primaryKey = [self valueForKey:dbPrimaryPropertyName];
-    executeModel.primaryKeyType = (int)self.cc_dataTypeBitmap.UTF8String[0];
+    ccdb_beginMMAPCacheTransaction(propertyMapper.mmapIndex, CCDBMMAPTransactionTypeContainerDelete);
+    ccdb_insertMMAPCacheWithInt(containerId, @"hash_id", propertyMapper.mmapIndex);
+    [self insertIntoMMAPCache:primaryValue type:type mmapIndex:propertyMapper.mmapIndex propertyName:@"primary_key"];
+    ccdb_commitMMAPCacheTransaction(propertyMapper.mmapIndex);
     
-    [self performSelector:@selector(removeFromDBWithExecuteModel:) onThread:[CCDBInstancePool getDBTransactionThread] withObject:executeModel waitUntilDone:YES];
-}
-
-+ (void)removeAllWithExecuteModel:(CCDBExecuteModel *)model {
-    CCDBStatement *stmt = [CCDBStatement statementWithDB:[NSThread currentThread].cc_dbInstance query:model.sql.UTF8String];
-    if (model.containerId != NOContainerId) {
-        [stmt bindInt64:model.containerId forIndex:1];
-    }
-    
-    [stmt step];
-    [stmt reset];
-}
-
-+ (void)removeAllContainerIndex {
-    NSString *className = NSStringFromClass([self class]);
-    NSString *containerTableName = [NSString stringWithFormat:@"%@_index",className];
-    NSString *sql = [NSString stringWithFormat:@"DELETE FROM %@",containerTableName];
-    CCDBExecuteModel *model = [[CCDBExecuteModel alloc] init];
-    model.sql = sql;
-    model.containerId = NOContainerId;
-    [self performSelector:@selector(removeAllWithExecuteModel:) onThread:[CCDBInstancePool getDBTransactionThread] withObject:model waitUntilDone:YES];
 }
 
 + (void)removeAll {
     NSString *className = NSStringFromClass([self class]);
-        
-    NSString *sql = [NSString stringWithFormat:@"DELETE FROM %@",className];
-    CCDBExecuteModel *model = [[CCDBExecuteModel alloc] init];
-    model.sql = sql;
-    model.containerId = NOContainerId;
-    [self performSelector:@selector(removeAllWithExecuteModel:) onThread:[CCDBInstancePool getDBTransactionThread] withObject:model waitUntilDone:YES];
+    CCPropertyMapper *propertyMapper = [[CCModelMapperManager sharedInstance].dicPropertyMapper objectForKey:className];
+
+    ccdb_beginMMAPCacheTransaction(propertyMapper.mmapIndex, CCDBMMAPTransactionTypeDeleteAll);
+    ccdb_commitMMAPCacheTransaction(propertyMapper.mmapIndex);
+    
+    ccdb_beginMMAPCacheTransaction(propertyMapper.mmapIndex, CCDBMMAPTransactionTypeDeleteAllObjectFromContainer);
+    ccdb_commitMMAPCacheTransaction(propertyMapper.mmapIndex);
 }
 
 + (void)removeAllWithContainerId:(long)containerId {
     NSString *className = NSStringFromClass([self class]);
-    NSString *containerTableName = [NSString stringWithFormat:@"%@_index",className];
-    NSString *sql = [NSString stringWithFormat:@"DELETE FROM %@ WHERE hash_id = ?",containerTableName];
-    CCDBExecuteModel *model = [[CCDBExecuteModel alloc] init];
-    model.sql = sql;
-    model.containerId = NOContainerId;
-    [self performSelector:@selector(removeAllWithExecuteModel:) onThread:[CCDBInstancePool getDBTransactionThread] withObject:model waitUntilDone:YES];
+    CCPropertyMapper *propertyMapper = [[CCModelMapperManager sharedInstance].dicPropertyMapper objectForKey:className];
+
+    ccdb_beginMMAPCacheTransaction(propertyMapper.mmapIndex, CCDBMMAPTransactionTypeContainerDeleteAll);
+    ccdb_insertMMAPCacheWithInt(containerId, @"hash_id", propertyMapper.mmapIndex);
+    ccdb_commitMMAPCacheTransaction(propertyMapper.mmapIndex);
 }
 
 + (void)loadCountWithExecuteModel:(CCDBExecuteModel *)model {
@@ -487,7 +558,7 @@
     NSString *propertyName = propertyMapper.primaryKey;
     NSString *sql = [[NSString alloc] initWithFormat:@"select count(*) from %@ ", className];
     if (condition.containerId != NOContainerId) {
-        sql = [NSString stringWithFormat:@"%@, %@_index as i where %@.%@ = i.primarykey and i.hash_id = %ld", sql, className, className, propertyName, condition.containerId];
+        sql = [NSString stringWithFormat:@"%@, %@_index as i where %@.%@ = i.primary_key and i.hash_id = %ld", sql, className, className, propertyName, condition.containerId];
         if (!condition.where) {
             sql = [[NSString alloc] initWithFormat:@"%@ %@", sql, condition.innerSql()];
         } else {

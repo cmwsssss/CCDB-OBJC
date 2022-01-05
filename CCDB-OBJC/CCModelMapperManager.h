@@ -106,6 +106,8 @@
  */
 @property (nonatomic, strong) NSMutableDictionary *dicPropertyType;
 
+@property (nonatomic, assign) NSInteger mmapIndex;
+
 @end
 
 @interface CCModelMapperManager : NSObject

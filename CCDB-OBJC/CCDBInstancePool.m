@@ -39,7 +39,7 @@ static NSInteger s_index = 0;
     }
     s_DBInstances[index] = instance;
     NSThread *thread = [self createThread];
-    [thread setDbInstanceWithIndex:index];
+    thread.cc_dbIndex = index;
     
     [s_DBTransactionThreads addObject:thread];
 }

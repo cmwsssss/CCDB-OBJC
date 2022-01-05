@@ -10,6 +10,8 @@
 #import "CCDBInstancePool.h"
 #import "CCDBTableManager.h"
 #import "NSThread+CCDB.h"
+#import "CCDBMMAPCache.h"
+#import "CCDBUpdateManager.h"
 #define DB_FILE_NAME @"db"
 
 @implementation CCDBConnection
@@ -41,9 +43,13 @@
             }
         }];
     }
+    NSLog(@"%@", dbFilePath);
     for (int i = 0; i < DB_INSTANCE_POOL_SIZE; i++) {
         [CCDBInstancePool addDBInstance:[self openDatabase:dbFilePath] index:i];
     }
+    ccdb_syncAllLocalCache();
+    [[CCDBUpdateManager sharedInstance] waitInit];
+    
     if (needUpgrade) {
         [CCDBTableManager updateAllTable];
     } else if (needCreate) {

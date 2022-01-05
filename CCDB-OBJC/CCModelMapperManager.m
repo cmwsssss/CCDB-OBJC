@@ -11,6 +11,7 @@
 #import "CCModelUtils.h"
 #import "NSObject+CC_JSON.h"
 #import "CCModel+ExtractData.h"
+#import "CCDBMMAPCache.h"
 @implementation CCJSONModelMapper
 
 - (NSMutableDictionary <NSString *, NSString *> *)dicJSONToProperty {
@@ -137,6 +138,7 @@ static id extractDataMethodWithParams(CCModel *target, SEL sel, ...) {
     SEL primarySel = sel_getUid("cc_bindPrimaryProperty");
     
     CCPropertyMapper *propertyMapper = [[CCPropertyMapper alloc] init];
+    propertyMapper.mmapIndex = ccdb_initilizeMMAPCache(className);
     [self.dicPropertyMapper setObject:propertyMapper forKey:className];
     
     CCJSONModelMapper *JSONMapper = [[CCJSONModelMapper alloc] init];

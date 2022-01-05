@@ -14,41 +14,36 @@
 #import "CCModel.h"
 #import "CCModel+Update.h"
 #import "CCDBTranscationManager.h"
+#import "NSThread+CCDB.h"
+#import "CCDBMMAPCache.h"
 static NSTimer *s_cpuUsageTimer;
 static CCDBUpdateManager *s_instance;
-static NSRecursiveLock *s_dataLock;
-static NSThread *s_replaceBackgroundThread;
+dispatch_semaphore_t s_initSemp;
 
 @interface CCDBUpdateManager ()
 
-@property (nonatomic, strong) NSMutableArray <CCModel *> *models;
 @property (nonatomic, strong) NSDate *lastCheckCPUTime;
-@property (nonatomic, strong) dispatch_group_t group;
-@property (nonatomic, strong) NSDate *dateCount;
-@property (nonatomic, strong) NSThread *executeThread;
+@property (nonatomic, assign) bool inited;
 
 @end
 
 @implementation CCDBUpdateManager
 
-- (NSMutableArray <CCModel *> *)models {
-    if (!_models) {
-        _models = [[NSMutableArray alloc] init];
-    }
-    
-    return _models;
-}
-
 + (instancetype)sharedInstance {
     static dispatch_once_t token;
     dispatch_once(&token, ^{
         s_instance = [[CCDBUpdateManager alloc] init];
-        s_dataLock = [[NSRecursiveLock alloc] init];
         s_cpuUsageTimer = [NSTimer timerWithTimeInterval:0.5 target:s_instance selector:@selector(startReplace) userInfo:nil repeats:YES];
         [[NSRunLoop mainRunLoop] addTimer:s_cpuUsageTimer forMode:NSRunLoopCommonModes];
-        
+        s_initSemp = dispatch_semaphore_create(1);
+        [s_instance performSelector:@selector(replaceIntoDB) onThread:[CCDBInstancePool getDBTransactionThread] withObject:nil waitUntilDone:YES];
     });
     return s_instance;
+}
+
+- (void)waitInit {
+    dispatch_semaphore_wait(s_initSemp, DISPATCH_TIME_FOREVER);
+    dispatch_semaphore_signal(s_initSemp);
 }
 
 - (void)startReplace {
@@ -59,42 +54,24 @@ static NSThread *s_replaceBackgroundThread;
     }
     float usage = cpu_usage();
     if (usage < 20) {
-        if (self.models.count > 0) {
-            [self performSelector:@selector(replaceIntoDB) onThread:[CCDBInstancePool getDBTransactionThread] withObject:nil waitUntilDone:NO];
-        }
+        [self performSelector:@selector(replaceIntoDB) onThread:[CCDBInstancePool getDBTransactionThread] withObject:nil waitUntilDone:NO];
     }
 }
 
 - (void)replaceIntoDB {
-    @try {
-        [s_dataLock lock];
-//        self.dateCount = [NSDate date];
-        [CCDBTranscationManager beginTransaction];
-        [self.models enumerateObjectsUsingBlock:^(CCModel * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-            if (!malloc_zone_from_ptr((__bridge const void *)obj)) {
-                //if find one dealloc object, should remove all object;
-                *stop = YES;
-                return;
-            }
-            if ([obj isKindOfClass:[CCModel class]]) {
-                CCModel *model = obj;
-                [model db_replaceIntoDB];
-            } else {
-                CCDBUpdateModel *model = obj;
-                [model.object db_replaceIntoDBWithContainerId:model.containerId top:model.top];
-            }
-        }];
-//        NSLog(@"replaceTime: %f, %ld", [self.dateCount timeIntervalSinceNow], self.models.count);
-        [CCDBTranscationManager commitTransaction];
-        [self.models removeAllObjects];
-        [s_dataLock unlock];
-        [self startReplace];
-    } @catch (NSException *exception) {
-        
-    } @finally {
-    
+    if (!self.inited) {
+        dispatch_semaphore_wait(s_initSemp, DISPATCH_TIME_FOREVER);
     }
-   
+    NSDate *date = [NSDate date];
+    [CCDBTranscationManager beginTransaction];
+    ccdb_replaceMMAPCacheDataIntoDB([NSThread currentThread].cc_dbInstance);
+    if (!self.inited) {
+        dispatch_semaphore_signal(s_initSemp);
+        self.inited = true;
+    }
+    [CCDBTranscationManager commitTransaction];
+//    NSLog(@"%f", date.timeIntervalSinceNow);
+    [self startReplace];
 }
 
 float cpu_usage()
@@ -157,40 +134,6 @@ float cpu_usage()
     assert(kr == KERN_SUCCESS);
     
     return tot_cpu;
-}
-
-- (void)createRunloop {
-    CFRunLoopSourceContext context = {0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
-    CFRunLoopSourceRef source = CFRunLoopSourceCreate(kCFAllocatorDefault, 0, &context);
-    CFRunLoopAddSource(CFRunLoopGetCurrent(), source, kCFRunLoopDefaultMode);
-    
-    BOOL runAlways = YES;
-    while (runAlways) {
-        CFRunLoopRunInMode(kCFRunLoopDefaultMode, DISPATCH_TIME_FOREVER, YES);
-    }
-    
-    CFRunLoopRemoveSource(CFRunLoopGetCurrent(), source, kCFRunLoopDefaultMode);
-    CFRelease(source);
-}
-
-- (NSThread *)executeThread {
-    if (!_executeThread) {
-        _executeThread = [[NSThread alloc] initWithTarget:self selector:@selector(createRunloop) object:nil];
-        _executeThread.threadPriority = 0.1;
-        [_executeThread start];
-    }
-    return _executeThread;
-}
-
-- (void)executeAddObject:(CCModel *)object {
-    [s_dataLock lock];
-    [self.models addObject:object];
-    [s_dataLock unlock];
-    [self startReplace];
-}
-
-- (void)addObject:(CCModel *)object {
-    [self performSelector:@selector(executeAddObject:) onThread:self.executeThread withObject:object waitUntilDone:NO];
 }
 
 @end

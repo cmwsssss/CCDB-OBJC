@@ -19,8 +19,12 @@
     return dic;
 }
 
-- (void)setDbInstanceWithIndex:(NSInteger)index {
-    objc_setAssociatedObject(self, "cc_db_instance_index", @(index), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+- (void)setCc_dbIndex:(NSInteger)cc_dbIndex {
+    objc_setAssociatedObject(self, "cc_dbIndex", @(cc_dbIndex), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (NSInteger)cc_dbIndex {
+    return [objc_getAssociatedObject(self, "cc_dbIndex") integerValue];
 }
 
 - (void)setCc_dbInstance:(sqlite3 *)cc_dbInstance {
@@ -32,7 +36,7 @@
 }
 
 - (sqlite3 *)cc_dbInstance {
-    return [CCDBInstancePool getDBInstanceWithIndex:[objc_getAssociatedObject(self, "cc_db_instance_index") integerValue]];
+    return [CCDBInstancePool getDBInstanceWithIndex:[objc_getAssociatedObject(self, "cc_dbIndex") integerValue]];
 }
 
 @end

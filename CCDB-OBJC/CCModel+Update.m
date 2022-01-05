@@ -151,7 +151,7 @@
         timestamp = [time timeIntervalSince1970];
     }
 
-    NSString *sql = [NSString stringWithFormat:@"REPLACE INTO %@ (id,hash_id,primarykey,update_time) VALUES(?,?,?,?)",containerTableName];
+    NSString *sql = [NSString stringWithFormat:@"REPLACE INTO %@ (id,hash_id,primary_key,update_time) VALUES(?,?,?,?)",containerTableName];
     
     CCDBStatement *stmt = nil;
     if (stmt == nil) {

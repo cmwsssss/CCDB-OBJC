@@ -3,5 +3,6 @@ use_frameworks!
 platform :ios, '10.0'
 
 target 'CCDBExample' do
-pod 'CCDB-OBJC'
+#pod 'CCDB-OBJC'
+pod 'CCDB-OBJC', :path=>'/Users/cmw/projects/CCDB-Objc/Core'
 end
